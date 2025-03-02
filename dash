@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard IA - Indicadores de Adm. Pessoas</title>
+  
+  <!-- Ícone da aba -->
+  <link rel="icon" href="https://www.hospitaloswaldocruz.org.br/wp-content/uploads/2017/09/hospital-alemao-oswaldo-cruz-favicon-40x40.png" sizes="32x32" />
+  
+  <!-- CSS do Oswaldo Cruz e demais estilos -->
+  <link rel="stylesheet" id="wp-block-library-css" href="https://www.hospitaloswaldocruz.org.br/wp-includes/css/dist/block-library/style.min.css?ver=6.5.5" media="all" />
+  <link rel="stylesheet" id="swiper-style-css" href="https://www.hospitaloswaldocruz.org.br/wp-content/themes/institucional_268/css/lib/swiper-bundle.css?ver=1.0.0" media="all" />
+  <link rel="stylesheet" id="institucional-style-css" href="https://www.hospitaloswaldocruz.org.br/wp-content/themes/institucional_268/style.css?ver=1.0.0" media="all" />
+  <link rel="stylesheet" id="cf7cf-style-css" href="https://www.hospitaloswaldocruz.org.br/wp-content/plugins/cf7-conditional-fields/style.css?ver=2.4.4" media="all" />
+  
+  <!-- Biblioteca XLSX para leitura do Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Estilos customizados -->
+  <style>
+    /* Fundo com a imagem de BG */
+    body {
+      background: url('https://www.hospitaloswaldocruz.org.br/wp-content/uploads/2023/08/Sobre-nos.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #ffffff;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: rgba(26, 26, 26, 0.8);
+      border-radius: 8px;
+    }
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .dashboard-header h1 {
+      font-size: 2.5rem;
+      margin: 0;
+      padding: 20px 0;
+      color: #ffffff;
+    }
+    .dashboard-header p {
+      font-size: 1.2rem;
+      color: #ffffff;
+    }
+    /* Estilo para o mês de referência */
+    .month-reference {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      color: #ffffff;
+    }
+    /* Input para upload do Excel */
+    #fileUpload {
+      margin: 10px auto 20px;
+      display: block;
+      color: #ffffff; /* Garante que o texto do input seja branco */
+    }
+    .cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      flex: 1;
+      min-width: 280px;
+      transition: transform 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card-title {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 10px;
+      color: #ffffff;
+    }
+    .indicator-item {
+      margin: 15px 0;
+    }
+    .label {
+      font-size: 1rem;
+      color: #ffffff;
+      margin-bottom: 5px;
+    }
+    .counter {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #00d084;
+    }
+    /* Card Orçamento com balde */
+    .bucket-container {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .bucket {
+      position: relative;
+      width: 100px;
+      height: 200px;
+      border: 2px solid #fff;
+      border-radius: 5px;
+      overflow: visible;
+      cursor: pointer;
+    }
+    .bucket-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #00d084;
+      height: 0;
+    }
+    .target-marker {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #ff6900;
+    }
+    /* Tooltips com efeito de balão */
+    .tooltip-explanation,
+    .tooltip-balloon {
+      display: none;
+      position: absolute;
+      color: #ffffff;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      max-width: 180px;
+      text-align: left;
+      z-index: 100;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .tooltip-explanation {
+      background: #333;
+    }
+    .tooltip-explanation::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -6px;
+      transform: translateY(-50%);
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+      border-color: transparent #333 transparent transparent;
+    }
+    .tooltip-balloon {
+      background: rgba(0, 0, 0, 0.85);
+    }
+    .tooltip-balloon::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      right: 50%;
+      transform: translateX(50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+    }
+    .bucket:hover .tooltip-explanation {
+      display: block;
+      top: 50%;
+      right: 105%;
+      transform: translateY(-50%);
+    }
+    .bucket:hover .tooltip-balloon {
+      display: block;
+      top: -40px;
+      right: -10px;
+    }
+    .bucket-info {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 1rem;
+      color: #ffffff;
+    }
+    footer {
+      text-align: center;
+      padding: 10px 0;
+      font-size: 0.9rem;
+      color: black;
+    }
+    footer a {
+      color: #ffffff;
+      text-decoration: none;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h1>Dashboard IA - Indicadores de Adm. Pessoas</h1>
+      <p>Análise em tempo real com tecnologia de IA</p>
+    </header>
+    
+    <!-- Incluir o mês de referência a partir do Excel (aba "Data", célula A1) -->
+    <div class="month-reference">
+      <p>Mês de Referência: <span id="monthReference">Nenhum arquivo escolhido</span></p>
+    </div>
+    
+    <!-- Input para upload do Excel -->
+    <input type="file" id="fileUpload" accept=".xlsx, .xls">
+    
+    <div class="cards-container">
+      <!-- Card: Ponto / Jornada -->
+      <div class="card">
+        <div class="card-title">Ponto / Jornada</div>
+        <div class="indicator-item">
+          <div class="label">Funcionários Ativos</div>
+          <div class="counter" id="ponto_funcionariosAtivos" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Total de Horas Trabalhadas</div>
+          <div class="counter" id="ponto_totalHorasTrabalhadas" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Horas Extras</div>
+          <div class="counter" id="ponto_horasExtras" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Atrasos no Mês</div>
+          <div class="counter" id="ponto_atrasos" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Banco de Horas (Positivas)</div>
+          <div class="counter" id="ponto_bancoHorasPositivas" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Banco de Horas (Negativas)</div>
+          <div class="counter" id="ponto_bancoHorasNegativas" data-target="0">0</div>
+        </div>
+      </div>
+      
+      <!-- Card: Folha de Pagamento -->
+      <div class="card">
+        <div class="card-title">Folha de Pagamento</div>
+        <div class="indicator-item">
+          <div class="label">Total Bruto de Salários</div>
+          <div class="counter" id="folha_totalBrutoSalarios" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Encargos (INSS)</div>
+          <div class="counter" id="folha_encargosINSS" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Encargos (FGTS)</div>
+          <div class="counter" id="folha_encargosFGTS" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Encargos (IRRF)</div>
+          <div class="counter" id="folha_encargosIRRF" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Provisão 13º</div>
+          <div class="counter" id="folha_provisao13" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Provisão Férias</div>
+          <div class="counter" id="folha_provisaoFerias" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Desconto Pensão</div>
+          <div class="counter" id="folha_descontoPensao" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Desconto Plano de Saúde</div>
+          <div class="counter" id="folha_descontoPlanoSaude" data-target="0">0</div>
+        </div>
+      </div>
+      
+      <!-- Card: Rescisões -->
+      <div class="card">
+        <div class="card-title">Rescisões</div>
+        <div class="indicator-item">
+          <div class="label">Desligamentos</div>
+          <div class="counter" id="rescisao_desligamentos" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Custo Total das Rescisões</div>
+          <div class="counter" id="rescisao_custoTotal" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Tempo Médio de Casa (anos)</div>
+          <div class="counter" id="rescisao_tempoMedioCasa" data-target="0">0</div>
+        </div>
+      </div>
+      
+      <!-- Card: Benefícios -->
+      <div class="card">
+        <div class="card-title">Benefícios</div>
+        <div class="indicator-item">
+          <div class="label">Vale Refeição</div>
+          <div class="counter" id="beneficios_valeRefeicao" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Vale Alimentação</div>
+          <div class="counter" id="beneficios_valeAlimentacao" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Plano de Saúde</div>
+          <div class="counter" id="beneficios_planoSaude" data-target="0">0</div>
+        </div>
+        <div class="indicator-item">
+          <div class="label">Total Benefícios</div>
+          <div class="counter" id="beneficios_totalBeneficios" data-target="0">0</div>
+        </div>
+      </div>
+      
+      <!-- Card: Orçamento (Perspectiva: Custo Médio da Folha) -->
+      <div class="card">
+        <div class="card-title">Orçamento</div>
+        <div class="bucket-container">
+          <div class="bucket">
+            <div class="bucket-fill"></div>
+            <div class="target-marker"></div>
+            <!-- Tooltip com uma única linha, posicionado à direita -->
+            <div class="tooltip-explanation">
+              A "água" representa o valor realizado; a linha laranja, a meta.
+            </div>
+            <div class="tooltip-balloon">
+              Perspectiva:<br>1,25x o custo médio.
+            </div>
+          </div>
+        </div>
+        <div class="bucket-info">
+          <p id="orcamento_info">Realizado: 0 | Meta: 0 | Máximo: 0</p>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <footer>
+    By Anderson Marinho
+    <a href="https://x.com/igarape_digital" target="_blank">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="black" style="vertical-align: middle;">
+        <path d="M22.46 6c-.77.35-1.6.59-2.46.69a4.28 4.28 0 0 0 1.88-2.37 8.55 8.55 0 0 1-2.71 1.04 4.26 4.26 0 0 0-7.27 3.89A12.1 12.1 0 0 1 3.16 4.59a4.26 4.26 0 0 0 1.32 5.69 4.2 4.2 0 0 1-1.93-.53v.05a4.26 4.26 0 0 0 3.42 4.18 4.26 4.26 0 0 1-1.92.07 4.26 4.26 0 0 0 3.98 2.97A8.55 8.55 0 0 1 2 19.54 12.06 12.06 0 0 0 8.29 21c7.55 0 11.68-6.26 11.68-11.68 0-.18-.01-.35-.02-.53A8.36 8.36 0 0 0 22.46 6z"></path>
+      </svg>
+    </a>
+  </footer>
+  
+  <!-- Scripts para leitura do Excel, atualização do dashboard e cache dos dados -->
+  <script>
+    // Função para identificar se o campo é de quantidade (apenas números inteiros)
+    function isQuantityField(element) {
+      return element.id === "ponto_funcionariosAtivos" || element.id === "rescisao_desligamentos";
+    }
+    
+    // Formata o número de acordo com o tipo de campo
+    function formatNumber(value, isQuantity) {
+      value = parseFloat(value);
+      if (isQuantity) {
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } else {
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    }
+    
+    // Animação dos contadores com efeito "roleta"
+    function animateCounter(element, target, duration) {
+      let start = 0;
+      let startTime = null;
+      const isInteger = isQuantityField(element);
+      function updateCounter(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        let value = start + progress * (target - start);
+        if (isInteger) {
+          value = Math.round(value);
+        }
+        element.innerText = formatNumber(value, isInteger);
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        } else {
+          element.innerText = formatNumber(target, isInteger);
+        }
+      }
+      requestAnimationFrame(updateCounter);
+    }
+    
+    // Anima o preenchimento do balde (Orçamento)
+    function animateBucketFill(element, targetPercent, duration) {
+      let start = 0;
+      const startTime = performance.now();
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        let progress = elapsed / duration;
+        if (progress > 1) progress = 1;
+        let value = start + (targetPercent - start) * progress;
+        element.style.height = value + '%';
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+    
+    // Lê os dados do Excel (cabeçalhos na primeira linha e dados na segunda)
+    function getSheetData(sheet) {
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      if (json.length < 2) return {};
+      const headers = json[0];
+      const values = json[1];
+      let result = {};
+      headers.forEach((header, i) => {
+        result[header] = values[i] || 0;
+      });
+      return result;
+    }
+    
+    // Atualiza o dashboard com os dados do Excel e armazena em cache (sessionStorage)
+    // O parâmetro "workbook" é utilizado para extrair a data de referência da aba "Data", célula A1.
+    function updateDashboard(data, workbook) {
+      let monthRefString = "";
+      if (workbook && workbook.SheetNames.includes("Data")) {
+        const cell = workbook.Sheets["Data"]["A1"];
+        if (cell && cell.v) {
+          let refDate = cell.v;
+          // Se for número, converte de serial Excel para data
+          if (typeof refDate === "number") {
+            refDate = new Date((refDate - 25569) * 86400 * 1000);
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            const monthName = monthNames[refDate.getMonth()];
+            const year = refDate.getFullYear();
+            monthRefString = monthName + " de " + year;
+          } else {
+            monthRefString = refDate;
+          }
+        } else {
+          monthRefString = "Data não definida";
+        }
+        document.getElementById("monthReference").innerText = monthRefString;
+        sessionStorage.setItem("monthReference", monthRefString);
+      } else {
+        monthRefString = sessionStorage.getItem("monthReference") || "Data não definida";
+        document.getElementById("monthReference").innerText = monthRefString;
+      }
+      
+      // Atualiza Ponto / Jornada
+      if(data.PontoJornada) {
+        document.getElementById("ponto_funcionariosAtivos").setAttribute("data-target", data.PontoJornada.FuncionariosAtivos);
+        document.getElementById("ponto_totalHorasTrabalhadas").setAttribute("data-target", data.PontoJornada.TotalHorasTrabalhadas);
+        document.getElementById("ponto_horasExtras").setAttribute("data-target", data.PontoJornada.HorasExtras);
+        document.getElementById("ponto_atrasos").setAttribute("data-target", data.PontoJornada.AtrasosNoMes);
+        document.getElementById("ponto_bancoHorasPositivas").setAttribute("data-target", data.PontoJornada.BancoHorasPositivas);
+        document.getElementById("ponto_bancoHorasNegativas").setAttribute("data-target", data.PontoJornada.BancoHorasNegativas);
+      }
+      
+      // Folha de Pagamento
+      if(data.FolhaPagamento) {
+        document.getElementById("folha_totalBrutoSalarios").setAttribute("data-target", data.FolhaPagamento.TotalBrutoSalarios);
+        document.getElementById("folha_encargosINSS").setAttribute("data-target", data.FolhaPagamento.EncargosINSS);
+        document.getElementById("folha_encargosFGTS").setAttribute("data-target", data.FolhaPagamento.EncargosFGTS);
+        document.getElementById("folha_encargosIRRF").setAttribute("data-target", data.FolhaPagamento.EncargosIRRF);
+        document.getElementById("folha_provisao13").setAttribute("data-target", data.FolhaPagamento.Provisao13);
+        document.getElementById("folha_provisaoFerias").setAttribute("data-target", data.FolhaPagamento.ProvisaoFerias);
+        document.getElementById("folha_descontoPensao").setAttribute("data-target", data.FolhaPagamento.DescontoPensao);
+        document.getElementById("folha_descontoPlanoSaude").setAttribute("data-target", data.FolhaPagamento.DescontoPlanoSaude);
+      }
+      
+      // Rescisões
+      if(data.Rescisoes) {
+        document.getElementById("rescisao_desligamentos").setAttribute("data-target", data.Rescisoes.Desligamentos);
+        document.getElementById("rescisao_custoTotal").setAttribute("data-target", data.Rescisoes.CustoTotalRescisoes);
+        document.getElementById("rescisao_tempoMedioCasa").setAttribute("data-target", data.Rescisoes.TempoMedioCasa);
+      }
+      
+      // Benefícios
+      if(data.Beneficios) {
+        document.getElementById("beneficios_valeRefeicao").setAttribute("data-target", data.Beneficios.ValeRefeicao);
+        document.getElementById("beneficios_valeAlimentacao").setAttribute("data-target", data.Beneficios.ValeAlimentacao);
+        document.getElementById("beneficios_planoSaude").setAttribute("data-target", data.Beneficios.PlanoSaude);
+        document.getElementById("beneficios_totalBeneficios").setAttribute("data-target", data.Beneficios.TotalBeneficios);
+      }
+      
+      // Orçamento
+      if(data.Orcamento) {
+        document.getElementById("orcamento_info").innerText =
+          `Realizado: ${formatNumber(data.Orcamento.Realizado, false)} | ` +
+          `Meta: ${formatNumber(data.Orcamento.Meta, false)} | ` +
+          `Máximo: ${formatNumber(data.Orcamento.Maximo, false)}`;
+          
+        let bucketMax = parseFloat(data.Orcamento.Maximo);
+        let realizado = parseFloat(data.Orcamento.Realizado);
+        let meta = parseFloat(data.Orcamento.Meta);
+        let fillPercentage = (realizado / bucketMax) * 100;
+        let metaMarkerPercentage = (meta / bucketMax) * 100;
+        const bucketFill = document.querySelector('.bucket-fill');
+        bucketFill.style.height = '0%';
+        animateBucketFill(bucketFill, fillPercentage, 2000);
+        const targetMarker = document.querySelector('.target-marker');
+        targetMarker.style.bottom = metaMarkerPercentage + '%';
+      } else {
+        alert("A aba 'Orcamento' não foi encontrada no arquivo Excel.");
+      }
+      
+      // Armazena os dados lidos em cache (sessionStorage)
+      sessionStorage.setItem("dashboardData", JSON.stringify(data));
+      
+      startAnimations();
+    }
+    
+    // Inicia a animação dos contadores
+    function startAnimations() {
+      const counters = document.querySelectorAll('.counter');
+      counters.forEach(counter => {
+        const target = parseFloat(counter.getAttribute("data-target")) || 0;
+        animateCounter(counter, target, 2000);
+      });
+    }
+    
+    // Evento para upload do Excel
+    document.getElementById("fileUpload").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          let dashboardData = {};
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            dashboardData[sheetName] = getSheetData(sheet);
+          });
+          console.log("Dados lidos do Excel:", dashboardData);
+          updateDashboard(dashboardData, workbook);
+        } catch (error) {
+          console.error("Erro ao ler o arquivo Excel:", error);
+          alert("Erro ao processar o arquivo. Verifique o formato e tente novamente.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+    
+    // Ao carregar a página, verifica se há dados em cache e, se houver, atualiza o dashboard
+    document.addEventListener("DOMContentLoaded", function() {
+      const cachedData = sessionStorage.getItem("dashboardData");
+      if (cachedData) {
+        updateDashboard(JSON.parse(cachedData), null);
+      }
+    });
+    
+    // Opcional: se desejar forçar um novo upload, limpe o cache:
+    // sessionStorage.removeItem("dashboardData");
+  </script>
+</body>
+</html>
